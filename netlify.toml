@@ -5,7 +5,7 @@
 
 [build.environment]
   NODE_VERSION        = "20"
-  VITE_API_URL        = "https://medisure-api.onrender.com/api/v1"
+  VITE_API_URL        = "https://medisure-api-vyx1.onrender.com/api/v1"
   # Demo account passwords — set these in Netlify dashboard env vars
   # (these defaults are visible here; set real values in the UI, not here)
   VITE_DEMO_ADMIN_PW    = "Admin@MediSure#2026"

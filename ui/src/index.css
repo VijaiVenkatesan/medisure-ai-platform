@@ -831,3 +831,175 @@ td .claim-id {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: none; }
 }
+
+/* ═══════════════════════════════════════════
+   FULL RESPONSIVE — Mobile, Tablet, Desktop
+   ═══════════════════════════════════════════ */
+
+/* ── MOBILE MENU OVERLAY ─────────────────── */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px; height: 40px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer; color: var(--text-primary);
+  position: fixed; top: 12px; left: 12px; z-index: 300;
+  transition: all var(--transition);
+}
+.mobile-menu-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 149; backdrop-filter: blur(2px);
+}
+
+/* ── TABLET (≤1024px) ───────────────────── */
+@media (max-width: 1024px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .app-layout { grid-template-columns: 220px 1fr; }
+  .sidebar { width: 220px; }
+
+  /* Underwriting 2-col → 1-col */
+  .page-content > div[style*="grid-template-columns: 400px"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Clinical 2-col → 1-col */
+  .page-content > div[style*="gridTemplateColumns: 380px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── MOBILE (≤768px) ────────────────────── */
+@media (max-width: 768px) {
+  /* Layout */
+  .app-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  /* Sidebar — off-canvas drawer */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 260px; z-index: 150;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+
+  /* Mobile hamburger button */
+  .mobile-menu-btn { display: flex; }
+
+  /* Main content fills full width */
+  .main-content {
+    margin-left: 0 !important;
+    padding-top: 60px; /* Space for hamburger button */
+  }
+
+  /* Page content spacing */
+  .page-header { padding: 16px 16px 0; }
+  .page-content { padding: 16px; }
+  .page-title { font-size: 18px; }
+
+  /* Stats: 2 columns on mobile */
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { padding: 14px; }
+  .stat-value { font-size: 24px; }
+
+  /* Tables: horizontal scroll */
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 600px; }
+
+  /* Cards */
+  .card { border-radius: var(--radius-md); }
+  .card-header { padding: 14px 16px; }
+  .card-body { padding: 14px 16px; }
+
+  /* Forms */
+  .form-group { margin-bottom: 14px; }
+  .form-input, .form-select, .form-textarea {
+    font-size: 16px; /* Prevents iOS zoom */
+    padding: 10px 12px;
+  }
+
+  /* Buttons */
+  .btn { padding: 9px 16px; font-size: 13px; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* Sidebar tabs on phase pages */
+  .page-header div[style*="border-bottom"] button {
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Admin panel / Underwriting 2-column → stack */
+  div[style*="gridTemplateColumns: 400px"],
+  div[style*="grid-template-columns: 400px"],
+  div[style*="gridTemplateColumns: 380px"],
+  div[style*="grid-template-columns: 380px"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Dashboard quick links: 1 column */
+  div[style*="gridTemplateColumns: 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Claim detail grid → stack */
+  .detail-grid { grid-template-columns: 1fr !important; }
+
+  /* ClaimID font */
+  .claim-id { font-size: 10px; }
+
+  /* Admin table actions */
+  .btn-icon { width: 28px; height: 28px; }
+
+  /* Chatbot position */
+  div[style*="bottom: 88px"][style*="right: 24px"] {
+    right: 8px !important;
+    bottom: 80px !important;
+    width: calc(100vw - 16px) !important;
+    max-width: 380px !important;
+  }
+  button[style*="bottom: 24px"][style*="right: 24px"] {
+    bottom: 16px !important;
+    right: 16px !important;
+  }
+
+  /* Login page */
+  .login-card { max-width: 95vw; }
+}
+
+/* ── SMALL MOBILE (≤480px) ──────────────── */
+@media (max-width: 480px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .stat-card { padding: 12px; }
+  
+  /* Phase page tabs: icons only or scroll */
+  .page-header div[style*="border-bottom"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 1px;
+  }
+
+  /* Modal full screen on small phones */
+  div[style*="maxWidth: 560"],
+  div[style*="max-width: 560"] {
+    max-width: 95vw !important;
+    margin: 8px !important;
+    max-height: 95vh !important;
+  }
+}
+
+/* ── PRINT ─────────────────────────────── */
+@media print {
+  .sidebar, .mobile-menu-btn, .sidebar-overlay { display: none !important; }
+  .main-content { margin: 0 !important; padding: 0 !important; }
+}

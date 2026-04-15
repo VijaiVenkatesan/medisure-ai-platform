@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Upload, List, ShieldCheck, BarChart2, BookOpen,
   Activity, AlertCircle, X, Stethoscope, Shield, HelpCircle,
-  Info, LogOut, User, ChevronDown, FileSearch
+  Info, LogOut, User, ChevronDown, FileSearch, Menu
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
@@ -182,14 +182,30 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* ── MOBILE HAMBURGER ── */}
+      <button
+        className="mobile-menu-btn"
+        onClick={() => setSidebarOpen(o => !o)}
+        aria-label="Toggle menu"
+        style={{ top: bannerVisible ? 53 : 12 }}
+      >
+        {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      {/* ── SIDEBAR OVERLAY ── */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
       {/* ── SIDEBAR ── */}
-      <aside className="sidebar" style={{ top: bannerVisible ? 41 : 0 }}>
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} style={{ top: bannerVisible ? 41 : 0 }}>
         <div className="sidebar-logo">
           <div className="logo-mark">C</div>
           <div className="logo-text">Medi<span>Sure AI</span></div>
         </div>
 
-        <nav className="sidebar-nav" style={{ flex: 1 }}>
+        <nav className="sidebar-nav" style={{ flex: 1 }} onClick={() => setSidebarOpen(false)}>
           <div className="nav-section-label">Platform</div>
           <NavLink to="/" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <LayoutDashboard size={15} /> Dashboard

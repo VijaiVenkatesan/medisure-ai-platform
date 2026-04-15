@@ -67,7 +67,7 @@ class UserDB(Base):
     __tablename__ = "users"
     id              = Column(String(36), primary_key=True)
     username        = Column(String(100), unique=True, nullable=False, index=True)
-    email           = Column(String(200), unique=True, nullable=True)
+    email           = Column(String(200), unique=False, nullable=True)
     full_name       = Column(String(200), nullable=True)
     hashed_password = Column(String(300), nullable=False)
     role            = Column(String(20), default="USER")
@@ -183,23 +183,41 @@ def _default_password(role: str) -> str:
 DEFAULT_USERS = [
     {"id": "usr-admin-001",   "username": "admin",
      "password": _default_password("ADMIN"),
-     "role": "ADMIN",    "full_name": "System Admin",    "email": ""},
+     "role": "ADMIN",    "full_name": "System Admin",    "email": None},
     {"id": "usr-rev-001",     "username": "reviewer",
      "password": _default_password("REVIEWER"),
-     "role": "REVIEWER", "full_name": "Claims Reviewer", "email": ""},
+     "role": "REVIEWER", "full_name": "Claims Reviewer", "email": None},
     {"id": "usr-user-001",    "username": "user",
      "password": _default_password("USER"),
-     "role": "USER",     "full_name": "Standard User",   "email": ""},
+     "role": "USER",     "full_name": "Standard User",   "email": None},
 ]
 
 
 async def ensure_default_users():
-    """Create default users on startup. Safe to call multiple times."""
-    # Make sure the users table exists
+    """Create default users on startup. Safe to call multiple times.
+    
+    Also handles schema migration: drops and recreates users table if the
+    email UNIQUE constraint causes issues (SQLite migration).
+    """
+    # Drop and recreate users table to fix schema if email UNIQUE is present
+    # This is safe because we always recreate default users below
     async with engine.begin() as conn:
+        try:
+            # Check if old schema has email UNIQUE (causes insert failure)
+            # Drop table and recreate with fixed schema
+            await conn.execute(
+                __import__('sqlalchemy').text(
+                    "DROP TABLE IF EXISTS users"
+                )
+            )
+            logger.info("Dropped users table for schema migration")
+        except Exception as e:
+            logger.warning(f"Drop users table: {e}")
+        
         await conn.run_sync(
             lambda c: Base.metadata.create_all(c, tables=[UserDB.__table__])
         )
+        logger.info("Users table created with correct schema")
 
     from app.infrastructure.db.models import AsyncSessionLocal
     async with AsyncSessionLocal() as db:

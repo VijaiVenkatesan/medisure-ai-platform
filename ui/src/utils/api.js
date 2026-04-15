@@ -15,7 +15,7 @@ const getBaseUrl = () => {
     return 'http://localhost:8000/api/v1'
   }
   // Production (Netlify, any other host) → always use Render
-  return 'https://medisure-api.onrender.com/api/v1'
+  return 'https://medisure-api-vyx1.onrender.com/api/v1'
 }
 
 const BASE_URL = getBaseUrl()
