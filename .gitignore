@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# App runtime files
+.env
+*.db
+*.db-shm
+*.db-wal
+/chroma_db/
+/test_chroma*/
+/test_*.db
+/uploads/
+/logs/
+
+# Node
+ui/node_modules/
+ui/dist/
+ui/.env.local
+ui/.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Misc
+*.log
+*.tmp
+
+# Never commit these
+.env
+.env.*
+!.env.example
+*.env
+.env.backup
+.env.local
+.env.production
+
+# No secrets in these
+secrets.json
+secrets.yaml
+credentials.json

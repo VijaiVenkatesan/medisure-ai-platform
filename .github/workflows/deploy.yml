@@ -1,0 +1,108 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # BACKEND: Test with mocked LLM
+  # ─────────────────────────────────────────────
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-render.txt
+
+      - name: Run tests (LLM fully mocked - no real API calls)
+        env:
+          GROQ_API_KEY: "gsk_test_placeholder_not_real"
+          DATABASE_URL: "sqlite+aiosqlite:///./test_ci.db"
+          CHROMA_PERSIST_DIR: "./test_chroma_ci"
+          LOG_LEVEL: "WARNING"
+          LOG_FILE: ""
+          RENDER: "true"
+          OCR_ENGINE: "pypdf"
+          GROQ_MODEL_PRIMARY: "llama-3.3-70b-versatile"
+          GROQ_MODEL_FAST: "llama-3.1-8b-instant"
+          GROQ_MODEL_ANALYSIS: "llama-3.3-70b-versatile"
+        run: pytest tests/ -v --tb=short --no-header -x --timeout=30
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf ./test_ci.db* ./test_chroma_ci
+
+  # ─────────────────────────────────────────────
+  # FRONTEND: Build check
+  # ─────────────────────────────────────────────
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: ui
+        # Use npm install (not npm ci) since package-lock.json may not exist
+        run: npm install
+
+      - name: Build
+        working-directory: ui
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://claimiq-api.onrender.com/api/v1' }}
+        run: npm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ui/dist/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────
+  # DEPLOY: Netlify (main branch only)
+  # ─────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy to Netlify
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: dist/
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy ${{ github.sha }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 5
+        continue-on-error: true

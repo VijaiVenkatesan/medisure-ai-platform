@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: medisure-api
+    runtime: python
+    region: singapore
+    plan: free
+    branch: main
+
+    buildCommand: >-
+      pip install --upgrade pip &&
+      pip install -r requirements-render.txt &&
+      python -m scripts.init_db --seed &&
+      python -m scripts.seed_policies
+
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    envVars:
+      - key: RENDER
+        value: "true"
+      - key: OCR_ENGINE
+        value: "pypdf"
+      - key: LOG_LEVEL
+        value: "INFO"
+      - key: LOG_FILE
+        value: ""
+      - key: DATABASE_URL
+        value: "sqlite+aiosqlite:///./claims.db"
+      - key: CHROMA_PERSIST_DIR
+        value: "./chroma_db"
+      - key: CORS_ORIGINS
+        value: '["*"]'
+      - key: GROQ_MODEL_PRIMARY
+        value: "llama-3.3-70b-versatile"
+      - key: GROQ_MODEL_FAST
+        value: "llama-3.1-8b-instant"
+      - key: GROQ_MODEL_ANALYSIS
+        value: "llama-3.3-70b-versatile"
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: REVIEWER_PASSWORD
+        sync: false
+      - key: USER_PASSWORD
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+    healthCheckPath: /api/v1/health
