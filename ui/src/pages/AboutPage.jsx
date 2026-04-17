@@ -87,7 +87,7 @@ export default function AboutPage() {
                     target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
                     <Github size={14} /> GitHub Repository
                   </a>
-                  <a href="https://medisure-api-vyx1.onrender.com/docs"
+                  <a href="https://medisure-ai-api.onrender.com/docs"
                     target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
                     <ExternalLink size={14} /> API Documentation
                   </a>
@@ -187,7 +187,7 @@ USER BROWSER ──────────────────────�
       │
       ▼
 NETLIFY (React + Vite) ─── static frontend, CDN-served
-  medisure-ai-vijai.netlify.app
+  medisure-ai-platform.pages.dev
       │  API calls (HTTPS)
       ▼
 RENDER (FastAPI + Python) ─── backend, auto-sleep free tier

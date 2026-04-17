@@ -18,7 +18,7 @@ SYSTEM_PROMPT = """You are MediSure AI Assistant — a helpful, friendly, expert
 
 PLATFORM OVERVIEW:
 MediSure AI is an enterprise-grade AI platform for insurance claims processing and medical document intelligence.
-It is deployed at https://medisure-ai.netlify.app (frontend) and https://medisure-api.onrender.com (backend API).
+It is deployed at https://medisure-ai-platform.pages.dev (frontend) and https://medisure-api-vyx1.onrender.com (backend API).
 
 FEATURES YOU CAN HELP WITH:
 

@@ -1,20 +1,11 @@
+# NOTE: This project has moved from Netlify to Cloudflare Pages.
+# Cloudflare Pages config is handled via:
+#   - ui/public/_redirects  (SPA routing)
+#   - Cloudflare Pages dashboard env vars
+#
+# This file is kept only as reference. Not used for deployment.
+
 [build]
   base    = "ui"
   command = "npm run build"
   publish = "dist"
-
-[build.environment]
-  NODE_VERSION        = "20"
-  VITE_API_URL        = "https://medisure-api-vyx1.onrender.com/api/v1"
-  # Demo account passwords — set these in Netlify dashboard env vars
-  # (these defaults are visible here; set real values in the UI, not here)
-  VITE_DEMO_ADMIN_PW    = "Admin@MediSure#2026"
-  VITE_DEMO_REVIEWER_PW = "Reviewer@MediSure#2026"
-  VITE_DEMO_USER_PW     = "User@MediSure#2026"
-
-# ── SPA routing — CRITICAL: every path must serve index.html ──────────
-# Without this, refreshing /underwriting, /clinical, etc. gives 404
-[[redirects]]
-  from   = "/*"
-  to     = "/index.html"
-  status = 200

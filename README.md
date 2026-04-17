@@ -10,8 +10,8 @@
 ## Live URLs
 
 | Service | URL |
-|---------|-----|
-| **Frontend (Netlify)** | https://medisure-vj-ai.netlify.app |
+| --- | --- |
+| **Frontend (Cloudflare Pages)** | https://medisure-ai-platform.pages.dev |
 | **Backend API (Render)** | https://medisure-api-vyx1.onrender.com |
 | **API Docs (Swagger)** | https://medisure-api-vyx1.onrender.com/docs |
 | **Health Check** | https://medisure-api-vyx1.onrender.com/api/v1/health |
@@ -24,7 +24,7 @@
 ## Login Credentials
 
 | Role | Username | Password | What they can do |
-|------|----------|----------|-----------------|
+| --- | --- | --- | --- |
 | **Admin** | `admin` | env: `ADMIN_PASSWORD` | Everything — all pages, edit/delete claims, manage users |
 | **Reviewer** | `reviewer` | env: `REVIEWER_PASSWORD` | HITL review, claims, medical AI, underwriting, clinical |
 | **User** | `user` | env: `USER_PASSWORD` | Submit claims, view results, medical AI tools |
@@ -40,23 +40,23 @@
 │  BROWSER ──────────────────────────────────────────────────────────────  │
 │     │                                                                     │
 │     ▼                                                                     │
-│  NETLIFY (React + Vite)    RENDER.COM (FastAPI + Python 3.11)            │
-│  medisure-vj-ai.netlify.app ─►  medisure-api-vyx1.onrender.com                   │
-│     │  JWT auth + HTTPS         │                                         │
-│     │                      ┌────┴────────────────────────────────────┐    │
-│     │                      │           GROQ AI CLOUD                 │    │
-│     │                      │  llama-3.3-70b-versatile  (reasoning)   │    │
-│     │                      │  llama-3.1-8b-instant     (fast tasks)  │    │
-│     │                      │  llama-4-scout-17b        (vision OCR)  │    │
-│     │                      │  whisper-large-v3         (audio STT)   │    │
-│     │                      └─────────────────────────────────────────┘    │
-│     │                           │                                         │
-│     │                      ┌────┴───────────┐   ┌────────────────────┐   │
-│     │                      │  SQLite / PG   │   │  ChromaDB (RAG)    │   │
-│     │                      │  Claims        │   │  180+ policy chunks│   │
-│     │                      │  Users + Auth  │   │  9 built-in policies│  │
-│     │                      │  Audit Logs    │   └────────────────────┘   │
-│     │                      └────────────────┘                            │
+│  CLOUDFLARE PAGES (React + Vite)   RENDER.COM (FastAPI + Python 3.11)   │
+│  medisure-ai-platform.pages.dev ─► medisure-api-vyx1.onrender.com       │
+│  ├── Global CDN (300+ locations)        │  JWT auth + HTTPS              │
+│  ├── Unlimited builds (free)       ┌────┴────────────────────────────┐   │
+│  └── SPA via ui/public/_redirects  │           GROQ AI CLOUD         │   │
+│                                    │  llama-3.3-70b-versatile         │   │
+│                                    │  llama-3.1-8b-instant            │   │
+│                                    │  llama-4-scout-17b (vision OCR)  │   │
+│                                    │  whisper-large-v3  (audio STT)   │   │
+│                                    └─────────────────────────────────┘    │
+│                                         │                                 │
+│                                    ┌────┴───────────┐  ┌──────────────┐  │
+│                                    │  SQLite / PG   │  │ ChromaDB RAG │  │
+│                                    │  Claims        │  │ 180+ chunks  │  │
+│                                    │  Users + Auth  │  │ 9 policies   │  │
+│                                    │  Audit Logs    │  └──────────────┘  │
+│                                    └────────────────┘                    │
 │                                                                           │
 │  GITHUB ─── source of truth, CI/CD, auto-deploys both services           │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -118,7 +118,7 @@ UPLOAD PDF/IMAGE
 ### Phase 2 — Medical Document Intelligence ✅ LIVE
 
 | Feature | What it does |
-|---------|-------------|
+| --- | --- |
 | **Medical Summarization** | Any document (discharge summary, OPD, lab, prescription) → structured clinical summary with diagnoses, medications, vitals, lab results, red flags |
 | **ICD-10 Auto-Coding** | Clinical text or document → ICD-10 codes with confidence, CPT (USA), coding rationale, query flags for physician |
 | **SOAP Transcription** | Dictation text or audio file → structured SOAP note (Subjective/Objective/Assessment/Plan) via Groq Whisper |
@@ -128,33 +128,35 @@ UPLOAD PDF/IMAGE
 ### Phase 3 — Clinical Decision Support & Underwriting ✅ LIVE
 
 #### Medical Underwriting
-- Risk classes: PREFERRED / STANDARD / SUBSTANDARD 1-3 / DECLINE
-- Premium loading %, specific exclusions with duration and rationale
-- Medical requirements (echo, treadmill, blood work)
-- India (IRDAI) / USA (NAIC) / UK (ABI) regulatory compliance
-- Supports: Health, Life (Term), Critical Illness, Personal Accident
+
+* Risk classes: PREFERRED / STANDARD / SUBSTANDARD 1-3 / DECLINE
+* Premium loading %, specific exclusions with duration and rationale
+* Medical requirements (echo, treadmill, blood work)
+* India (IRDAI) / USA (NAIC) / UK (ABI) regulatory compliance
+* Supports: Health, Life (Term), Critical Illness, Personal Accident
 
 #### Clinical Decision Support
-- **Diagnosis Assist:** Differential diagnoses ranked by probability with supporting/against features
-- **Drug Interactions:** CONTRAINDICATED / MAJOR / MODERATE / MINOR + renal/hepatic dosing
-- **Risk Stratification:** Cardiovascular, Diabetes, Cancer, Readmission risk with 10-year % risk
-- India-first: Dengue, Malaria, TB, Typhoid, nutritional deficiencies in differential
+
+* **Diagnosis Assist:** Differential diagnoses ranked by probability with supporting/against features
+* **Drug Interactions:** CONTRAINDICATED / MAJOR / MODERATE / MINOR + renal/hepatic dosing
+* **Risk Stratification:** Cardiovascular, Diabetes, Cancer, Readmission risk with 10-year % risk
+* India-first: Dengue, Malaria, TB, Typhoid, nutritional deficiencies in differential
 
 ### Phase 4 — Enterprise Platform 🔜 Roadmap
 
-- Multi-tenant SaaS architecture
-- HIPAA / GDPR / DPDP (India) compliance module
-- Real-time HL7 FHIR R4 health record streaming
-- HIS / EMR connector framework
-- WhatsApp / SMS patient communication bot
-- Radiology AI (chest X-ray TB detection via CheXNet)
+* Multi-tenant SaaS architecture
+* HIPAA / GDPR / DPDP (India) compliance module
+* Real-time HL7 FHIR R4 health record streaming
+* HIS / EMR connector framework
+* WhatsApp / SMS patient communication bot
+* Radiology AI (chest X-ray TB detection via CheXNet)
 
 ---
 
 ## All 5 Modules
 
 | Module | Phase | Status | API Prefix |
-|--------|-------|--------|-----------|
+| --- | --- | --- | --- |
 | Insurance Claims | Phase 1 | ✅ Live | `/api/v1/claims` |
 | Medical Document Intelligence | Phase 2 | ✅ Live | `/api/v1/medical` |
 | Medical Underwriting | Phase 3 | ✅ Live | `/api/v1/underwriting` |
@@ -166,7 +168,7 @@ UPLOAD PDF/IMAGE
 ## Complete UI Pages
 
 | Page | Route | Role | Description |
-|------|-------|------|-------------|
+| --- | --- | --- | --- |
 | Login | `/login` | All | JWT auth, demo account buttons, role-colored |
 | Dashboard | `/` | All | KPI cards, recent claims, quick links, error+retry |
 | Submit Claim | `/submit` | All | Drag-drop upload, live pipeline steps, auto-refresh |
@@ -188,7 +190,7 @@ UPLOAD PDF/IMAGE
 ## Tech Stack (100% Free & Open Source)
 
 | Layer | Technology |
-|-------|-----------|
+| --- | --- |
 | LLM Primary | Groq `llama-3.3-70b-versatile` |
 | LLM Fast | Groq `llama-3.1-8b-instant` |
 | Vision OCR | Groq `meta-llama/llama-4-scout-17b-16e-instruct` |
@@ -203,7 +205,7 @@ UPLOAD PDF/IMAGE
 | Charts | Recharts |
 | Icons | Lucide React |
 | Deploy Backend | Render.com (free) |
-| Deploy Frontend | Netlify (free) |
+| Deploy Frontend | **Cloudflare Pages (free, unlimited builds)** |
 | CI/CD | GitHub Actions |
 
 ---
@@ -211,6 +213,7 @@ UPLOAD PDF/IMAGE
 ## Local Development
 
 ### Prerequisites
+
 ```
 Python 3.11+  →  https://python.org
 Node.js 20+   →  https://nodejs.org
@@ -218,7 +221,8 @@ Groq API key  →  https://console.groq.com (free, no credit card)
 ```
 
 ### Setup
-```cmd
+
+```
 git clone https://github.com/VijaiVenkatesan/medisure-ai-platform.git
 cd medisure-ai-platform
 
@@ -231,14 +235,15 @@ notepad .env
 ```
 
 Set in `.env`:
-```env
+
+```
 GROQ_API_KEY=gsk_your_actual_key_here
 SECRET_KEY=any-long-random-string-at-least-32-chars
 GROQ_MODEL_PRIMARY=llama-3.3-70b-versatile
 GROQ_MODEL_FAST=llama-3.1-8b-instant
 ```
 
-```cmd
+```
 python -m scripts.init_db --seed
 python -m scripts.seed_policies
 
@@ -246,7 +251,8 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 New terminal:
-```cmd
+
+```
 cd ui
 npm install
 npm run dev
@@ -258,18 +264,18 @@ Open: **http://localhost:5173** → login with admin account (use demo button on
 
 ## Cloud Deployment
 
-### Step 1: Rename GitHub repository
-1. GitHub → your repo → **Settings** → **General**
-2. Repository name → change to `medisure-ai-platform`
-3. Click **Rename**
+### Step 1: GitHub repository
+
+Repo is already set up at: `https://github.com/VijaiVenkatesan/medisure-ai-platform`
 
 ### Step 2: Deploy Backend on Render
+
 1. https://render.com → **New** → **Web Service**
 2. Connect `VijaiVenkatesan/medisure-ai-platform`
 3. Settings:
 
 | Field | Value |
-|-------|-------|
+| --- | --- |
 | Name | `medisure-api` |
 | Region | Singapore |
 | Branch | `main` |
@@ -281,7 +287,7 @@ Open: **http://localhost:5173** → login with admin account (use demo button on
 4. Environment Variables:
 
 | Key | Value |
-|-----|-------|
+| --- | --- |
 | `GROQ_API_KEY` | your key |
 | `SECRET_KEY` | long random string |
 | `RENDER` | `true` |
@@ -290,33 +296,54 @@ Open: **http://localhost:5173** → login with admin account (use demo button on
 | `CORS_ORIGINS` | `["*"]` |
 | `GROQ_MODEL_PRIMARY` | `llama-3.3-70b-versatile` |
 | `GROQ_MODEL_FAST` | `llama-3.1-8b-instant` |
+| `ADMIN_PASSWORD` | your admin password |
+| `REVIEWER_PASSWORD` | your reviewer password |
+| `USER_PASSWORD` | your user password |
 
 5. Click **Create Web Service** → wait 5-8 min
 6. Test: https://medisure-api-vyx1.onrender.com/api/v1/health
 
-### Step 3: Deploy Frontend on Netlify
-1. https://app.netlify.com → **Add new site** → **Import from Git**
-2. Select `VijaiVenkatesan/medisure-ai-platform`
-3. Settings:
+### Step 3: Deploy Frontend on Cloudflare Pages
+
+> **Note:** Moved from Netlify to Cloudflare Pages (unlimited free builds, global CDN).
+
+1. https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Pages**
+2. **Connect to Git** → GitHub → select `VijaiVenkatesan/medisure-ai-platform`
+3. Build settings:
 
 | Field | Value |
-|-------|-------|
-| Base directory | `ui` |
+| --- | --- |
+| Project name | `medisure-ai-platform` |
+| Root directory | `ui` |
 | Build command | `npm run build` |
-| Publish directory | `ui/dist` |
+| Build output directory | `dist` |
 
-4. Environment variables → Add: `VITE_API_URL` = `https://medisure-api-vyx1.onrender.com/api/v1`
-5. Deploy → Site configuration → Change name to `medisure-vj-ai`
+4. Environment variables → Add:
+
+| Variable | Value |
+| --- | --- |
+| `VITE_API_URL` | `https://medisure-api-vyx1.onrender.com/api/v1` |
+| `VITE_DEMO_ADMIN_PW` | your admin password |
+| `VITE_DEMO_REVIEWER_PW` | your reviewer password |
+| `VITE_DEMO_USER_PW` | your user password |
+
+5. Click **Save and Deploy** → live at `medisure-ai-platform.pages.dev`
+
+SPA routing is handled by `ui/public/_redirects` (already in repo):
+```
+/* /index.html 200
+```
 
 ### Step 4: GitHub Secrets (auto-deploy CI/CD)
+
 Go to: `https://github.com/VijaiVenkatesan/medisure-ai-platform/settings/secrets/actions`
 
-| Secret | Value |
-|--------|-------|
-| `GROQ_API_KEY` | your Groq key |
-| `VITE_API_URL` | `https://medisure-api-vyx1.onrender.com/api/v1` |
-| `NETLIFY_AUTH_TOKEN` | from netlify.com/user/applications |
-| `NETLIFY_SITE_ID` | from Netlify site settings |
+| Secret | Value | How to get |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | CF token | Cloudflare → My Profile → API Tokens → Create Token → "Edit Cloudflare Workers" template |
+| `CLOUDFLARE_ACCOUNT_ID` | Account ID | Cloudflare → right sidebar |
+| `GROQ_API_KEY` | your Groq key | console.groq.com |
+| `VITE_API_URL` | `https://medisure-api-vyx1.onrender.com/api/v1` | hardcoded |
 
 After this: every `git push` → auto-deploy both services.
 
@@ -325,6 +352,7 @@ After this: every `git push` → auto-deploy both services.
 ## Complete API Reference
 
 ### Auth
+
 ```
 POST /api/v1/auth/login          Login → JWT token
 GET  /api/v1/auth/me             Current user profile
@@ -334,6 +362,7 @@ DELETE /api/v1/auth/users/{u}    Delete user (admin)
 ```
 
 ### Claims (Phase 1)
+
 ```
 POST /api/v1/claims/submit           Upload document
 GET  /api/v1/claims/{id}             Get claim + full data
@@ -346,6 +375,7 @@ POST /api/v1/policies/index          Index policy for RAG
 ```
 
 ### Medical AI (Phase 2)
+
 ```
 POST /api/v1/medical/summarize            Document → clinical summary
 POST /api/v1/medical/code                 Text → ICD-10 codes
@@ -355,6 +385,7 @@ POST /api/v1/medical/transcribe-audio     Audio file → SOAP note
 ```
 
 ### Underwriting & Clinical (Phase 3)
+
 ```
 POST /api/v1/underwriting/assess          Medical history → risk class + loading
 POST /api/v1/clinical/diagnose            Symptoms → differential diagnoses
@@ -363,6 +394,7 @@ POST /api/v1/clinical/risk-stratify       Patient data → risk score
 ```
 
 ### Admin
+
 ```
 GET    /api/v1/admin/claims              All claims (admin)
 PATCH  /api/v1/admin/claims/{id}         Edit claim
@@ -373,6 +405,7 @@ GET    /api/v1/admin/stats               System stats
 ```
 
 ### Support
+
 ```
 POST /api/v1/support/chat    AI chatbot conversation
 ```
@@ -382,7 +415,7 @@ POST /api/v1/support/chat    AI chatbot conversation
 ## India-Specific Features
 
 | Feature | Implementation |
-|---------|---------------|
+| --- | --- |
 | IRDAI compliance | Validation agent enforces health/motor rules |
 | Govt schemes | Ayushman Bharat, PM-JAY, PMFBY, ESIC, CGHS in RAG |
 | Aadhaar | Auto-masked XXXX-XXXX-XXXX |
@@ -399,7 +432,8 @@ POST /api/v1/support/chat    AI chatbot conversation
 ## Git Push Commands
 
 ### First push (new repo)
-```cmd
+
+```
 cd D:\medisure-ai-platform
 git init
 git add .
@@ -410,7 +444,8 @@ git push -u origin main
 ```
 
 ### Subsequent pushes
-```cmd
+
+```
 git add .
 git commit -m "your change"
 git push
@@ -421,17 +456,19 @@ git push
 ## Troubleshooting
 
 | Problem | Solution |
-|---------|---------|
-| Login fails / timeout | Render sleeping — wait 30s, retry |
-| Scanned PDF error | Groq Vision is used automatically — check GROQ_API_KEY set in Render |
+| --- | --- |
+| Login fails / timeout | Render sleeping — wait 30s, click demo button on login screen |
+| Scanned PDF error | Groq Vision is used automatically — check GROQ\_API\_KEY set in Render |
 | Dashboard blank | Click Refresh button — backend error state shown |
 | Claim stuck processing | Admin Panel → find claim → ↺ Reprocess |
 | `model_decommissioned` | Run `fix_env.bat` to update model names in `.env` |
 | Render 522 timeout | Normal free-tier sleep — first request wakes it |
 | Push rejected (secrets) | Delete `.env.backup`, add to `.gitignore` |
 | CI tests timeout | `pytest-timeout` is in requirements, tests have `@pytest.mark.timeout(30)` |
+| Netlify "Site not available" | Moved to Cloudflare Pages — use https://medisure-ai-platform.pages.dev |
 
 ---
 
 ## License
+
 MIT — free to use, modify, and deploy commercially.

@@ -8,7 +8,7 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────
-  # BACKEND: Test with mocked LLM
+  # BACKEND: Test
   # ─────────────────────────────────────────────
   backend-test:
     name: Backend Tests
@@ -16,18 +16,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements-render.txt
-
-      - name: Run tests (LLM fully mocked - no real API calls)
+      - name: Run tests
         env:
           GROQ_API_KEY: "gsk_test_placeholder_not_real"
           DATABASE_URL: "sqlite+aiosqlite:///./test_ci.db"
@@ -39,14 +36,17 @@ jobs:
           GROQ_MODEL_PRIMARY: "llama-3.3-70b-versatile"
           GROQ_MODEL_FAST: "llama-3.1-8b-instant"
           GROQ_MODEL_ANALYSIS: "llama-3.3-70b-versatile"
+          SECRET_KEY: "test-secret-key-for-ci-only"
+          ADMIN_PASSWORD: "Admin@Test123"
+          REVIEWER_PASSWORD: "Reviewer@Test123"
+          USER_PASSWORD: "User@Test123"
         run: pytest tests/ -v --tb=short --no-header -x --timeout=30
-
       - name: Cleanup
         if: always()
         run: rm -rf ./test_ci.db* ./test_chroma_ci
 
   # ─────────────────────────────────────────────
-  # FRONTEND: Build check
+  # FRONTEND: Build
   # ─────────────────────────────────────────────
   frontend-build:
     name: Frontend Build
@@ -54,23 +54,21 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-
-      - name: Install dependencies
+      - name: Install
         working-directory: ui
-        # Use npm install (not npm ci) since package-lock.json may not exist
         run: npm install
-
       - name: Build
         working-directory: ui
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://claimiq-api.onrender.com/api/v1' }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://medisure-api-vyx1.onrender.com/api/v1' }}
+          VITE_DEMO_ADMIN_PW: ${{ secrets.VITE_DEMO_ADMIN_PW || 'Admin@MediSure#2026' }}
+          VITE_DEMO_REVIEWER_PW: ${{ secrets.VITE_DEMO_REVIEWER_PW || 'Reviewer@MediSure#2026' }}
+          VITE_DEMO_USER_PW: ${{ secrets.VITE_DEMO_USER_PW || 'User@MediSure#2026' }}
         run: npm run build
-
-      - name: Upload dist artifact
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -78,10 +76,10 @@ jobs:
           retention-days: 1
 
   # ─────────────────────────────────────────────
-  # DEPLOY: Netlify (main branch only)
+  # DEPLOY: Cloudflare Pages — main branch only
   # ─────────────────────────────────────────────
   deploy-frontend:
-    name: Deploy to Netlify
+    name: Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -92,17 +90,10 @@ jobs:
           name: frontend-dist
           path: dist/
 
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          publish-dir: dist/
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy ${{ github.sha }}"
-          enable-pull-request-comment: false
-          enable-commit-comment: false
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 5
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/ --project-name=medisure-ai-platform --commit-dirty=true
         continue-on-error: true
