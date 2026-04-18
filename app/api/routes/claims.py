@@ -3,9 +3,12 @@ FastAPI routes for the claims processing API.
 All routes follow REST conventions with proper error handling.
 """
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Dict, Any
+from datetime import datetime
+import uuid as _uuid
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from app.infrastructure.db.models import get_db
 from app.models.schemas import (
@@ -258,3 +261,170 @@ async def get_analytics(
             for row in rows
         ]
     }
+
+
+# ─────────────────────────────────────────────
+# OCR REVIEW & EDIT
+# ─────────────────────────────────────────────
+
+class ReviewedClaimData(BaseModel):
+    """User-reviewed/corrected OCR extraction result."""
+    # Document reference
+    original_filename: str
+    ocr_text: str                          # Raw OCR text (preserved)
+
+    # Editable extracted fields — user can correct these
+    claimant_name:   Optional[str] = None
+    date_of_birth:   Optional[str] = None
+    gender:          Optional[str] = None
+    contact:         Optional[str] = None
+    email:           Optional[str] = None
+    address:         Optional[str] = None
+    aadhaar_number:  Optional[str] = None
+    pan_number:      Optional[str] = None
+
+    policy_number:   Optional[str] = None
+    insurance_company: Optional[str] = None
+    insurance_type:  Optional[str] = "HEALTH"
+    policy_start:    Optional[str] = None
+    policy_end:      Optional[str] = None
+    sum_insured:     Optional[float] = None
+
+    incident_date:   Optional[str] = None
+    reported_date:   Optional[str] = None
+    hospital_name:   Optional[str] = None
+    doctor_name:     Optional[str] = None
+    diagnosis:       Optional[str] = None
+    treatment:       Optional[str] = None
+
+    claimed_amount:  Optional[float] = None
+    currency:        Optional[str] = "INR"
+    amount_breakdown: Optional[Dict[str, float]] = None
+
+    country:         Optional[str] = "IN"
+
+
+@router.post(
+    "/claims/ocr-preview",
+    tags=["Claims"],
+    summary="Step 1: Extract data from document for user review",
+)
+async def ocr_preview(
+    file: UploadFile = File(...),
+):
+    """
+    Upload a document and get back OCR-extracted structured data.
+    The user can review and correct this data BEFORE submitting to the full AI pipeline.
+    This prevents OCR errors (like 5,260 being read as 61,260) from propagating.
+    """
+    try:
+        content = await file.read()
+        filename = file.filename or "document"
+        content_type = file.content_type or "application/octet-stream"
+
+        # ── Step 1: OCR ──
+        from app.infrastructure.ocr.engine import extract_text_from_bytes
+        ocr_result = await extract_text_from_bytes(content, content_type, filename)
+        raw_text = ocr_result.get("text", "")
+        ocr_confidence = ocr_result.get("confidence", 0.0)
+
+        if not raw_text.strip():
+            raise HTTPException(422, "Could not extract text from document. Try a higher quality scan.")
+
+        # ── Step 2: Extract structured data ──
+        from app.agents.extraction_agent import extract_claim_data
+        extracted = await extract_claim_data(raw_text)
+
+        return {
+            "status": "preview_ready",
+            "ocr_confidence": ocr_confidence,
+            "ocr_text": raw_text,
+            "original_filename": filename,
+            "extracted": extracted,
+            "message": "Review and correct the extracted data below before submitting.",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"OCR preview error: {e}")
+        raise HTTPException(500, f"OCR preview failed: {str(e)}")
+
+
+@router.post(
+    "/claims/submit-with-data",
+    tags=["Claims"],
+    summary="Step 2: Submit user-reviewed data to the full AI pipeline",
+)
+async def submit_claim_with_reviewed_data(
+    reviewed: ReviewedClaimData,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Accept user-reviewed/corrected OCR data and run the full AI pipeline:
+    Validate → Policy Check (RAG) → Fraud Analysis → Decision
+    Skips OCR and extraction since user has already verified the data.
+    """
+    try:
+        claim_id = f"CLM-{datetime.utcnow().strftime('%Y%m%d')}-{str(_uuid.uuid4())[:8].upper()}"
+
+        # Build extraction result from reviewed data
+        extracted_data = {
+            "claimant_name":      reviewed.claimant_name,
+            "date_of_birth":      reviewed.date_of_birth,
+            "gender":             reviewed.gender,
+            "contact":            reviewed.contact,
+            "email":              reviewed.email,
+            "address":            reviewed.address,
+            "aadhaar_number":     reviewed.aadhaar_number,
+            "pan_number":         reviewed.pan_number,
+            "policy_number":      reviewed.policy_number,
+            "insurance_company":  reviewed.insurance_company,
+            "insurance_type":     reviewed.insurance_type or "HEALTH",
+            "policy_start_date":  reviewed.policy_start,
+            "policy_end_date":    reviewed.policy_end,
+            "sum_insured":        reviewed.sum_insured,
+            "incident_date":      reviewed.incident_date,
+            "reported_date":      reviewed.reported_date,
+            "hospital_name":      reviewed.hospital_name,
+            "doctor_name":        reviewed.doctor_name,
+            "diagnosis":          reviewed.diagnosis,
+            "treatment":          reviewed.treatment,
+            "claimed_amount":     reviewed.claimed_amount,
+            "currency":           reviewed.currency or "INR",
+            "amount_breakdown":   reviewed.amount_breakdown or {},
+            "country":            reviewed.country or "IN",
+        }
+
+        # Store claim in DB first
+        from app.infrastructure.db.repository import ClaimRepository
+        repo = ClaimRepository(db)
+        claim = await repo.create_claim(
+            claim_id=claim_id,
+            filename=reviewed.original_filename,
+            content_type="text/reviewed",  # marks as human-reviewed
+            file_size=len(reviewed.ocr_text),
+            insurance_type=reviewed.insurance_type or "HEALTH",
+        )
+
+        # Run pipeline from VALIDATION step (OCR + extraction already done by user)
+        from app.workflows.claims_workflow import run_pipeline_from_extraction
+        await run_pipeline_from_extraction(
+            claim_id=claim_id,
+            extracted_data=extracted_data,
+            raw_text=reviewed.ocr_text,
+            db=db,
+        )
+
+        logger.info(f"Reviewed claim submitted: {claim_id}")
+        return {
+            "claim_id": claim_id,
+            "status": "VALIDATING",
+            "message": "Your reviewed data has been submitted. Processing will complete in ~30 seconds.",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"submit-with-data error: {e}")
+        raise HTTPException(500, f"Submission failed: {str(e)}")

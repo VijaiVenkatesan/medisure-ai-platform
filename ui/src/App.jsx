@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Upload, List, ShieldCheck, BarChart2, BookOpen,
   Activity, AlertCircle, X, Stethoscope, Shield, HelpCircle,
-  Info, LogOut, User, ChevronDown, FileSearch, Menu
+  Info, LogOut, User, ChevronDown, FileSearch, Menu, Edit3
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
@@ -12,6 +12,7 @@ import { getPendingHITL, getHealth } from './utils/api'
 import LoginPage    from './pages/Login.jsx'
 import Dashboard    from './pages/Dashboard.jsx'
 import Submit       from './pages/Submit.jsx'
+import OCRReview    from './pages/OCRReview.jsx'
 import Claims       from './pages/Claims.jsx'
 import ClaimDetail  from './pages/ClaimDetail.jsx'
 import HITLReview   from './pages/HITLReview.jsx'
@@ -229,6 +230,13 @@ export default function App() {
           <NavLink to="/submit" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <Upload size={15} /> Submit Claim
           </NavLink>
+          <NavLink to="/ocr-review" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <Edit3 size={15} /> OCR Review
+            <span style={{
+              fontSize: 9, background: 'rgba(245,158,11,0.2)', color: 'var(--investigate)',
+              padding: '1px 5px', borderRadius: 8, fontWeight: 700, marginLeft: 4,
+            }}>VERIFY</span>
+          </NavLink>
           <NavLink to="/claims" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
             <List size={15} /> All Claims
           </NavLink>
@@ -320,6 +328,7 @@ export default function App() {
             <Routes>
               <Route path="/"             element={<Dashboard />} />
               <Route path="/submit"       element={<Submit />} />
+              <Route path="/ocr-review"    element={<OCRReview />} />
               <Route path="/claims"       element={<Claims />} />
               <Route path="/claims/:id"   element={<ClaimDetail />} />
               <Route path="/hitl"         element={isReviewer ? <HITLReview />  : <Navigate to="/" />} />

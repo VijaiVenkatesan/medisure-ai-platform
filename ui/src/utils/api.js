@@ -144,3 +144,17 @@ export const clinicalDrugInteractions = (payload) =>
 
 export const clinicalRiskStratify = (payload) =>
   api.post('/clinical/risk-stratify', payload).then(r => r.data)
+
+// ─── OCR REVIEW (new endpoint) ────────────
+// Step 1: Extract text from document without running full pipeline
+export const ocrPreview = (formData) =>
+  api.post('/claims/ocr-preview', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 90000,
+  }).then(r => r.data)
+
+// Step 2: Submit pre-reviewed/edited data to full pipeline
+export const submitClaimWithData = (payload) =>
+  api.post('/claims/submit-with-data', payload, {
+    timeout: 120000,
+  }).then(r => r.data)
