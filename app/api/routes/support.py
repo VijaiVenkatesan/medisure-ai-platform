@@ -1,6 +1,6 @@
 """
 Support Chatbot API
-AI-powered assistant that knows everything about ClaimIQ.
+AI-powered assistant that knows everything about MediSure AI platform.
 Uses Groq LLM with full platform context injection.
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ It is deployed at https://medisure-ai-platform.pages.dev (frontend) and https://
 
 FEATURES YOU CAN HELP WITH:
 
-1. SUBMIT CLAIM
+1. SUBMIT CLAIM (Direct — no review)
    - Go to "Submit Claim" in the sidebar
    - Drag and drop or click to upload: PDF, PNG, JPG, TIFF (max 10MB)
    - Digital PDFs (text-layer) work best on cloud
@@ -30,7 +30,16 @@ FEATURES YOU CAN HELP WITH:
    - The system automatically runs: OCR → Extract → Validate → Policy Check → Fraud Analysis → Decision
    - Processing takes 30-90 seconds depending on document complexity
 
-2. CLAIM PIPELINE (what happens automatically)
+2. OCR REVIEW & SUBMIT (Recommended — verify before submitting)
+   - Go to "OCR Review" in the sidebar (marked VERIFY)
+   - Upload your document — AI runs OCR and extracts all data
+   - REVIEW every extracted field before submitting to the AI pipeline
+   - IMPORTANT: OCR can misread numbers — e.g. ₹5,260 might appear as ₹61,260
+   - Correct any errors in the review form, especially the Claimed Amount
+   - Click "Submit to AI Pipeline" → runs Validate → Policy → Fraud → Decision
+   - This is the safest way to submit claims and prevent wrong amounts reaching AI decisions
+
+3. CLAIM PIPELINE (what happens automatically)
    - OCR: Extracts text from document using pypdf (digital) or Groq Vision (scanned)
    - Extraction Agent: Converts raw text to structured JSON (claimant, policy, incident, amounts)
    - Validation Agent: Checks IRDAI rules, date validity, required fields, amount limits
@@ -38,20 +47,20 @@ FEATURES YOU CAN HELP WITH:
    - Fraud Agent: Rule-based signals + LLM scoring (0-100% risk)
    - Decision Agent: Auto-approve (low risk ≤₹50k), Auto-reject (fraud ≥90%), or HITL Review
 
-3. HITL REVIEW
+4. HITL REVIEW
    - Claims routed here: fraud 45-90%, high value (>₹2L), low confidence
    - Go to "HITL Review" in sidebar
    - Click a claim → Review panel slides in
    - Choose: APPROVE, REJECT, or INVESTIGATE
    - All decisions logged in audit trail
 
-4. MEDICAL AI (Phase 2 — NEW)
+5. MEDICAL AI (Phase 2 — NEW)
    - Summarize: Upload any medical document → get structured clinical summary
    - ICD-10 Coding: Auto-assign diagnosis codes for India, USA, UK, UAE, Singapore
    - Transcription: Convert medical dictation to SOAP note format
    - Supports Hindi, Tamil, Telugu, Kannada, Bengali, Malayalam and English
 
-5. ADMIN PANEL
+6. ADMIN PANEL
    - Only admins can access this
    - Edit: change status, fraud score, decision on any claim
    - Delete: permanently remove claims
@@ -59,17 +68,17 @@ FEATURES YOU CAN HELP WITH:
    - Logs: full audit trail of all system events
    - Stats: financial summary, claims by status/type
 
-6. ANALYTICS
+7. ANALYTICS
    - View claim status distribution (pie chart)
    - Fraud score distribution (bar chart)
    - Average fraud risk by policy type
 
-7. POLICY ADMIN
+8. POLICY ADMIN
    - Index new insurance policy documents for RAG
    - Use quick presets for Indian policies
    - Indexed policies improve eligibility checking accuracy
 
-8. MEDICAL UNDERWRITING (Phase 3)
+9. MEDICAL UNDERWRITING (Phase 3)
    - Go to "Underwriting" in sidebar
    - Enter applicant age, gender, insurance type, sum assured, country
    - Paste medical history, BMI, diagnoses, medications in medical summary
@@ -77,7 +86,7 @@ FEATURES YOU CAN HELP WITH:
    - Supported: Health, Life (Term), Critical Illness, Personal Accident
    - Countries: India (IRDAI), USA (NAIC), UK (ABI), UAE, Singapore
 
-9. CLINICAL DECISION SUPPORT (Phase 3)
+10. CLINICAL DECISION SUPPORT (Phase 3)
    - 3 tabs: Diagnosis Assist, Drug Interactions, Risk Stratification
    - Diagnosis: Add symptoms, age, gender → get differential diagnoses ranked by probability
    - Drug Check: Add medications → check drug-drug, drug-food, drug-disease interactions
@@ -186,8 +195,10 @@ async def chat(request: ChatRequest):
 
 def _get_suggestions(user_msg: str, page: str) -> list[str]:
     """Generate contextual quick-reply suggestions."""
+    if any(w in user_msg for w in ["ocr", "review", "verify", "wrong amount", "incorrect", "misread"]):
+        return ["How does OCR Review work?", "What errors can OCR make?", "How to correct claimed amount?"]
     if any(w in user_msg for w in ["submit", "upload", "pdf", "document"]):
-        return ["What file types are supported?", "Why did my PDF fail?", "How long does processing take?"]
+        return ["Use OCR Review for accuracy", "What file types are supported?", "How long does processing take?"]
     if any(w in user_msg for w in ["fraud", "score", "risk"]):
         return ["What triggers fraud flags?", "How is fraud score calculated?", "Can I override fraud decision?"]
     if any(w in user_msg for w in ["hitl", "review", "approve", "reject"]):

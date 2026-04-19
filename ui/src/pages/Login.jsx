@@ -4,21 +4,31 @@ import { Eye, EyeOff, LogIn, AlertCircle, Shield, User, Stethoscope } from 'luci
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
 
-// Passwords sourced from Vite env vars (set in Netlify dashboard)
-// Never hardcode credentials — set VITE_DEMO_ADMIN_PW etc. in Netlify env
 const DEMO_ACCOUNTS = [
-  { role: 'ADMIN',    username: 'admin',
+  {
+    role: 'ADMIN',
+    username: 'admin',
     password: import.meta.env.VITE_DEMO_ADMIN_PW || 'Admin@MediSure#2026',
-    icon: <Shield size={14} />, color: 'var(--brand)',
-    desc: 'Full system access, admin panel, user management' },
-  { role: 'REVIEWER', username: 'reviewer',
+    icon: <Shield size={14} />,
+    color: 'var(--brand)',
+    desc: 'Full system access, admin panel, user management',
+  },
+  {
+    role: 'REVIEWER',
+    username: 'reviewer',
     password: import.meta.env.VITE_DEMO_REVIEWER_PW || 'Reviewer@MediSure#2026',
-    icon: <User size={14} />, color: 'var(--info)',
-    desc: 'HITL review, claim processing, read-only admin' },
-  { role: 'USER',     username: 'user',
+    icon: <User size={14} />,
+    color: 'var(--info)',
+    desc: 'HITL review, claim processing, read-only admin',
+  },
+  {
+    role: 'USER',
+    username: 'user',
     password: import.meta.env.VITE_DEMO_USER_PW || 'User@MediSure#2026',
-    icon: <Stethoscope size={14} />, color: 'var(--approve)',
-    desc: 'Submit claims, view own claims, medical AI tools' },
+    icon: <Stethoscope size={14} />,
+    color: 'var(--approve)',
+    desc: 'Submit claims, view own claims, medical AI tools',
+  },
 ]
 
 export default function LoginPage() {
@@ -40,8 +50,8 @@ export default function LoginPage() {
     try {
       const data = await login(username, password)
       toast.success(`Welcome, ${data.full_name || data.username}!`)
-    } catch (e) {
-      setError(e.response?.data?.detail || e.message || 'Login failed')
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -55,10 +65,15 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--bg-base)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh',
+      background: 'var(--bg-base)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       padding: 20,
-      backgroundImage: 'radial-gradient(circle at 30% 20%, rgba(0,201,167,0.06) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(59,130,246,0.06) 0%, transparent 50%)',
+      backgroundImage:
+        'radial-gradient(circle at 30% 20%, rgba(0,201,167,0.06) 0%, transparent 50%), ' +
+        'radial-gradient(circle at 70% 80%, rgba(59,130,246,0.06) 0%, transparent 50%)',
     }}>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -69,11 +84,14 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
-            width: 56, height: 56, background: 'linear-gradient(135deg, var(--brand), #007aff)',
-            borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 14px', fontSize: 22, fontWeight: 800, color: '#000',
+            width: 56, height: 56,
+            background: 'linear-gradient(135deg, var(--brand), #007aff)',
+            borderRadius: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 14px',
+            fontSize: 22, fontWeight: 800, color: '#000',
             boxShadow: '0 0 32px rgba(0,201,167,0.3)',
-          }}>C</div>
+          }}>M</div>
           <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, marginBottom: 4 }}>
             Medi<span style={{ color: 'var(--brand)' }}>Sure AI</span>
           </h1>
@@ -84,8 +102,10 @@ export default function LoginPage() {
 
         {/* Login card */}
         <div style={{
-          background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)',
-          border: '1px solid var(--border-default)', padding: '28px 28px',
+          background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-default)',
+          padding: '28px 28px',
           boxShadow: 'var(--shadow-lg)',
         }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Sign in</h2>
@@ -94,13 +114,19 @@ export default function LoginPage() {
           </p>
 
           {error && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
               style={{
-                background: 'var(--reject-dim)', border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: 'var(--radius-md)', padding: '10px 14px',
-                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
+                background: 'var(--reject-dim)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                borderRadius: 'var(--radius-md)',
+                padding: '10px 14px',
+                display: 'flex', alignItems: 'center', gap: 8,
+                marginBottom: 16,
                 fontSize: 13, color: 'var(--reject)',
-              }}>
+              }}
+            >
               <AlertCircle size={15} /> {error}
             </motion.div>
           )}
@@ -108,33 +134,50 @@ export default function LoginPage() {
           <form onSubmit={handleLogin}>
             <div className="form-group" style={{ marginBottom: 14 }}>
               <label className="form-label">Username</label>
-              <input className="form-input" type="text" placeholder="Enter username"
-                value={username} onChange={e => setUsername(e.target.value)}
-                autoComplete="username" autoFocus />
+              <input
+                className="form-input"
+                type="text"
+                placeholder="Enter username"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                autoComplete="username"
+                autoFocus
+              />
             </div>
 
             <div className="form-group" style={{ marginBottom: 20 }}>
               <label className="form-label">Password</label>
               <div style={{ position: 'relative' }}>
-                <input className="form-input" type={showPw ? 'text' : 'password'}
-                  placeholder="Enter password" value={password}
+                <input
+                  className="form-input"
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="Enter password"
+                  value={password}
                   onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  style={{ paddingRight: 40 }} />
-                <button type="button" onClick={() => setShowPw(s => !s)}
+                  style={{ paddingRight: 40 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(s => !s)}
                   style={{
                     position: 'absolute', right: 12, top: '50%',
-                    transform: 'translateY(-50%)', background: 'none',
-                    border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2,
-                  }}>
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-muted)', padding: 2,
+                  }}
+                >
                   {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary"
+            <button
+              type="submit"
+              className="btn btn-primary"
               style={{ width: '100%', height: 42, fontSize: 14 }}
-              disabled={loading}>
+              disabled={loading}
+            >
               {loading
                 ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Signing in…</>
                 : <><LogIn size={15} /> Sign In</>}
@@ -149,17 +192,24 @@ export default function LoginPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {DEMO_ACCOUNTS.map(acc => (
-              <motion.button key={acc.role}
-                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+              <motion.button
+                key={acc.role}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => fillDemo(acc)}
                 style={{
-                  background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-md)', padding: '10px 14px',
-                  cursor: 'pointer', textAlign: 'left', display: 'flex',
-                  alignItems: 'center', gap: 12, transition: 'border-color var(--transition)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px 14px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  transition: 'border-color var(--transition)',
                 }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = acc.color}
-                onMouseLeave={e => e.currentTarget.style.borderColor = ''}>
+                onMouseLeave={e => e.currentTarget.style.borderColor = ''}
+              >
                 <div style={{
                   width: 32, height: 32, borderRadius: 'var(--radius-md)',
                   background: acc.color + '22', color: acc.color,

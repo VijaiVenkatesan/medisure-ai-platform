@@ -68,6 +68,8 @@
 
 ### Phase 1 — Insurance Claims Processing ✅ LIVE
 
+**New: OCR Review & Edit** — upload document → AI extracts data → you review & correct before submitting to pipeline.
+
 ```
 UPLOAD PDF/IMAGE
       │
@@ -172,6 +174,7 @@ UPLOAD PDF/IMAGE
 | Login | `/login` | All | JWT auth, demo account buttons, role-colored |
 | Dashboard | `/` | All | KPI cards, recent claims, quick links, error+retry |
 | Submit Claim | `/submit` | All | Drag-drop upload, live pipeline steps, auto-refresh |
+| OCR Review | `/ocr-review` | All | Upload → AI extracts → **user reviews & corrects** → submit (prevents wrong amounts) |
 | All Claims | `/claims` | All | Searchable, filterable table, pagination |
 | Claim Detail | `/claims/:id` | All | Full data, fraud gauge, pipeline tracker, audit trail |
 | HITL Review | `/hitl` | Reviewer+ | Queue list, slide-in panel, approve/reject/investigate |

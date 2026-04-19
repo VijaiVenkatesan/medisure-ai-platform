@@ -151,7 +151,7 @@ export default function App() {
         background: 'linear-gradient(135deg, var(--brand), #007aff)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 22, fontWeight: 800, color: '#000',
-      }}>C</div>
+      }}>M</div>
       <div className="spinner" />
     </div>
   )

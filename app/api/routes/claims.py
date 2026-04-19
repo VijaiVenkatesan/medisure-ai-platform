@@ -322,11 +322,37 @@ async def ocr_preview(
         filename = file.filename or "document"
         content_type = file.content_type or "application/octet-stream"
 
-        # ── Step 1: OCR ──
-        from app.infrastructure.ocr.engine import extract_text_from_bytes
-        ocr_result = await extract_text_from_bytes(content, content_type, filename)
-        raw_text = ocr_result.get("text", "")
-        ocr_confidence = ocr_result.get("confidence", 0.0)
+        # ── Step 1: OCR — write to temp file then call engine ──
+        import tempfile, os, pathlib
+        from app.infrastructure.ocr.engine import get_ocr_engine
+
+        # Determine file extension from filename or content_type
+        ext = pathlib.Path(filename).suffix.lower() if filename else ""
+        if not ext:
+            ext_map = {
+                "application/pdf": ".pdf",
+                "image/png": ".png",
+                "image/jpeg": ".jpg",
+                "image/tiff": ".tif",
+            }
+            ext = ext_map.get(content_type, ".pdf")
+
+        # Write bytes to a temp file (OCR engine works on file paths)
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            ocr_engine = get_ocr_engine()
+            ocr_result = await ocr_engine.extract_text(tmp_path)
+            raw_text = ocr_result.raw_text or ""
+            ocr_confidence = ocr_result.confidence or 0.0
+        finally:
+            # Always clean up temp file
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
 
         if not raw_text.strip():
             raise HTTPException(422, "Could not extract text from document. Try a higher quality scan.")
