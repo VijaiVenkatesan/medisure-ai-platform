@@ -263,6 +263,92 @@ async def get_analytics(
     }
 
 
+
+# ─────────────────────────────────────────────
+# OCR EXTRACTION HELPER
+# Used by ocr_preview — calls Groq LLM directly
+# to avoid import fragility with extraction_agent
+# ─────────────────────────────────────────────
+
+async def _extract_with_llm(raw_text: str) -> dict:
+    """
+    Extract structured claim data from OCR text using Groq LLM.
+    Returns a dict matching the extraction_agent output format.
+    Falls back to empty dict on error — user will fill fields manually.
+    """
+    EXTRACT_PROMPT = """Extract insurance claim information from the following document text.
+Return a JSON object with these fields (use null for missing values):
+{
+  "claimant_name": null,
+  "date_of_birth": null,
+  "gender": null,
+  "contact": null,
+  "email": null,
+  "address": null,
+  "aadhaar_number": null,
+  "pan_number": null,
+  "policy_number": null,
+  "insurance_company": null,
+  "insurance_type": "HEALTH",
+  "policy_start_date": null,
+  "policy_end_date": null,
+  "sum_insured": null,
+  "incident_date": null,
+  "reported_date": null,
+  "hospital_name": null,
+  "doctor_name": null,
+  "diagnosis": null,
+  "treatment": null,
+  "claimed_amount": null,
+  "currency": "INR",
+  "amount_breakdown": {},
+  "country": "IN"
+}
+Return ONLY valid JSON. No explanation. No markdown.
+Document text:
+"""
+
+    try:
+        from app.infrastructure.llm.groq_client import get_groq_client
+        import json
+
+        llm = get_groq_client()
+        response = await llm.client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "You extract structured data from insurance documents. Return only JSON."},
+                {"role": "user", "content": EXTRACT_PROMPT + raw_text[:4000]},
+            ],
+            max_tokens=1500,
+            temperature=0.1,
+        )
+        text = response.choices[0].message.content or ""
+        # Strip markdown fences if present
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        text = text.strip()
+        return json.loads(text)
+    except Exception as e:
+        logger.warning(f"LLM extraction fallback triggered: {e}")
+        # Return empty structure — user fills in via the review form
+        return {
+            "claimant_name": None, "date_of_birth": None, "gender": None,
+            "contact": None, "email": None, "address": None,
+            "aadhaar_number": None, "pan_number": None,
+            "policy_number": None, "insurance_company": None,
+            "insurance_type": "HEALTH",
+            "policy_start_date": None, "policy_end_date": None, "sum_insured": None,
+            "incident_date": None, "reported_date": None,
+            "hospital_name": None, "doctor_name": None,
+            "diagnosis": None, "treatment": None,
+            "claimed_amount": None, "currency": "INR",
+            "amount_breakdown": {}, "country": "IN",
+        }
+
+
 # ─────────────────────────────────────────────
 # OCR REVIEW & EDIT
 # ─────────────────────────────────────────────
@@ -357,9 +443,10 @@ async def ocr_preview(
         if not raw_text.strip():
             raise HTTPException(422, "Could not extract text from document. Try a higher quality scan.")
 
-        # ── Step 2: Extract structured data ──
-        from app.agents.extraction_agent import extract_claim_data
-        extracted = await extract_claim_data(raw_text)
+        # ── Step 2: Extract structured data with Groq LLM ──
+        # We call the LLM directly here to avoid import issues with extraction_agent.
+        # The extraction_agent internally does the same thing.
+        extracted = await _extract_with_llm(raw_text)
 
         return {
             "status": "preview_ready",
