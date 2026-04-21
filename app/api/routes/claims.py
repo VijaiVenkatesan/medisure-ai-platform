@@ -264,6 +264,108 @@ async def get_analytics(
 
 
 
+
+# ─────────────────────────────────────────────
+# PDF BUILDER HELPER
+# Creates a minimal valid PDF from plain text
+# so pypdf can extract it in the OCR step.
+# Uses only stdlib — no reportlab dependency.
+# ─────────────────────────────────────────────
+
+def _build_text_pdf(text: str) -> bytes:
+    """
+    Build a minimal valid single-page PDF that embeds text as a text stream.
+    pypdf will read this back perfectly in the OCR step.
+    No external dependencies — pure Python struct building.
+    """
+    import struct, zlib
+
+    # Escape special PDF characters
+    safe = (
+        text
+        .replace("\\", "\\\\")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+        .replace("\r", "")
+    )
+
+    # Build PDF content stream (plain text positioned at top of page)
+    lines = safe.split("\n")
+    content_lines = ["BT", "/F1 10 Tf", "50 800 Td", "12 TL"]
+    for line in lines[:200]:  # limit to 200 lines to keep PDF small
+        content_lines.append(f"({line[:200]}) Tj T*")
+    content_lines.append("ET")
+    content_stream = "\n".join(content_lines).encode("latin-1", errors="replace")
+
+    # Build minimal PDF structure
+    pdf = bytearray()
+    offsets = []
+
+    def w(data: bytes):
+        offsets_local = len(pdf)
+        pdf.extend(data)
+        return offsets_local
+
+    def wl(s: str):
+        return w((s + "\n").encode("latin-1", errors="replace"))
+
+    wl("%PDF-1.4")
+
+    # Object 1: catalog
+    offsets.append(len(pdf))
+    wl("1 0 obj")
+    wl("<< /Type /Catalog /Pages 2 0 R >>")
+    wl("endobj")
+
+    # Object 2: pages
+    offsets.append(len(pdf))
+    wl("2 0 obj")
+    wl("<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+    wl("endobj")
+
+    # Object 3: page
+    offsets.append(len(pdf))
+    wl("3 0 obj")
+    wl("<< /Type /Page /Parent 2 0 R")
+    wl("   /MediaBox [0 0 595 842]")
+    wl("   /Contents 4 0 R")
+    wl("   /Resources << /Font << /F1 5 0 R >> >> >>")
+    wl("endobj")
+
+    # Object 4: content stream
+    offsets.append(len(pdf))
+    wl("4 0 obj")
+    wl(f"<< /Length {len(content_stream)} >>")
+    wl("stream")
+    w(content_stream)
+    wl("")
+    wl("endstream")
+    wl("endobj")
+
+    # Object 5: font
+    offsets.append(len(pdf))
+    wl("5 0 obj")
+    wl("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    wl("endobj")
+
+    # Cross-reference table
+    xref_offset = len(pdf)
+    wl("xref")
+    wl(f"0 {len(offsets) + 1}")
+    wl("0000000000 65535 f ")
+    for off in offsets:
+        wl(f"{off:010d} 00000 n ")
+
+    # Trailer
+    wl("trailer")
+    wl(f"<< /Size {len(offsets) + 1} /Root 1 0 R >>")
+    wl("startxref")
+    wl(str(xref_offset))
+    w(b"%%EOF")
+
+    return bytes(pdf)
+
+
 # ─────────────────────────────────────────────
 # OCR EXTRACTION HELPER
 # Used by ocr_preview — calls Groq LLM directly
@@ -479,57 +581,60 @@ async def submit_claim_with_reviewed_data(
     Skips OCR and extraction since user has already verified the data.
     """
     try:
-        import json as _json
+        # Build a clean structured text document from the user-reviewed data.
+        # We create a minimal PDF so pypdf can extract the text in the OCR step,
+        # which avoids "Unsupported file type" errors from plain .txt files.
+        reviewed_lines = [
+            f"REVIEWED CLAIM DATA - User Verified OCR",
+            f"Original file: {reviewed.original_filename}",
+            f"",
+            f"=== CLAIMANT INFORMATION ===",
+            f"Name: {reviewed.claimant_name or ''}",
+            f"Date of Birth: {reviewed.date_of_birth or ''}",
+            f"Gender: {reviewed.gender or ''}",
+            f"Contact: {reviewed.contact or ''}",
+            f"Email: {reviewed.email or ''}",
+            f"Address: {reviewed.address or ''}",
+            f"Aadhaar: {reviewed.aadhaar_number or ''}",
+            f"PAN: {reviewed.pan_number or ''}",
+            f"",
+            f"=== POLICY DETAILS ===",
+            f"Policy Number: {reviewed.policy_number or ''}",
+            f"Insurance Company: {reviewed.insurance_company or ''}",
+            f"Insurance Type: {reviewed.insurance_type or 'HEALTH'}",
+            f"Policy Start Date: {reviewed.policy_start or ''}",
+            f"Policy End Date: {reviewed.policy_end or ''}",
+            f"Sum Insured: {reviewed.sum_insured or ''}",
+            f"",
+            f"=== INCIDENT DETAILS ===",
+            f"Incident Date: {reviewed.incident_date or ''}",
+            f"Reported Date: {reviewed.reported_date or ''}",
+            f"Hospital Name: {reviewed.hospital_name or ''}",
+            f"Doctor Name: {reviewed.doctor_name or ''}",
+            f"Diagnosis: {reviewed.diagnosis or ''}",
+            f"Treatment: {reviewed.treatment or ''}",
+            f"",
+            f"=== CLAIM AMOUNTS (USER VERIFIED - AUTHORITATIVE) ===",
+            f"Claimed Amount: {reviewed.claimed_amount or ''}",
+            f"Currency: {reviewed.currency or 'INR'}",
+            f"Country: {reviewed.country or 'IN'}",
+            f"",
+            f"=== ORIGINAL OCR TEXT (For Reference) ===",
+            reviewed.ocr_text or "",
+        ]
+        reviewed_text = "\n".join(reviewed_lines)
 
-        # Encode reviewed data as a structured text document.
-        # ClaimsService.submit_claim() handles all DB creation and pipeline correctly.
-        # The extraction LLM will re-parse this clean JSON perfectly, preserving
-        # all user-corrected values (including the verified claimed_amount).
-        reviewed_doc = f"""REVIEWED CLAIM DATA (User-verified OCR output)
-Original file: {reviewed.original_filename}
+        # Create a minimal valid PDF so pypdf can read the text layer correctly.
+        # This bypasses the "Unsupported file type" error for .txt files.
+        pdf_bytes = _build_text_pdf(reviewed_text)
 
-=== CLAIMANT ===
-Name: {reviewed.claimant_name or ""}
-Date of Birth: {reviewed.date_of_birth or ""}
-Gender: {reviewed.gender or ""}
-Contact: {reviewed.contact or ""}
-Email: {reviewed.email or ""}
-Address: {reviewed.address or ""}
-Aadhaar: {reviewed.aadhaar_number or ""}
-PAN: {reviewed.pan_number or ""}
-
-=== POLICY ===
-Policy Number: {reviewed.policy_number or ""}
-Insurance Company: {reviewed.insurance_company or ""}
-Insurance Type: {reviewed.insurance_type or "HEALTH"}
-Policy Start: {reviewed.policy_start or ""}
-Policy End: {reviewed.policy_end or ""}
-Sum Insured: {reviewed.sum_insured or ""}
-
-=== INCIDENT ===
-Incident Date: {reviewed.incident_date or ""}
-Reported Date: {reviewed.reported_date or ""}
-Hospital: {reviewed.hospital_name or ""}
-Doctor: {reviewed.doctor_name or ""}
-Diagnosis: {reviewed.diagnosis or ""}
-Treatment: {reviewed.treatment or ""}
-
-=== CLAIM AMOUNTS (USER VERIFIED) ===
-Claimed Amount: {reviewed.claimed_amount or ""} {reviewed.currency or "INR"}
-Currency: {reviewed.currency or "INR"}
-Country: {reviewed.country or "IN"}
-
-=== ORIGINAL OCR TEXT ===
-{reviewed.ocr_text}
-"""
-
-        # Use service.submit_claim() — this is the single correct entry point
-        # It handles DB creation, pipeline execution, and async processing.
+        # Use the single correct entry point — service.submit_claim handles
+        # all DB creation, file storage, OCR, and pipeline execution.
         service = ClaimsService(db)
         result = await service.submit_claim(
-            file_content=reviewed_doc.encode("utf-8"),
-            filename=reviewed.original_filename or "ocr_reviewed.txt",
-            content_type="text/plain",
+            file_content=pdf_bytes,
+            filename=f"reviewed_{reviewed.original_filename or 'claim'}.pdf",
+            content_type="application/pdf",
             correlation_id=None,
         )
 
